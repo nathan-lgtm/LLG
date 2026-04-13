@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classement — Polycopié LLG</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@400;600&display=swap');
+
+    :root {
+      --bg:#f5f3ee;--surface:#fdfcf9;--ink:#1c1a17;--ink2:#5a5650;--ink3:#9a9590;
+      --gold:#7c5c2a;--gold-l:#e8dcc8;--gold-ll:#f5f0e8;--green:#2a5c3a;--green-l:#d4ead9;
+      --border:#ddd9d0;--border-s:#c8c3b8;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Crimson Pro',Georgia,serif;background:var(--bg);color:var(--ink);min-height:100vh}
+
+    .topbar{
+      height:54px;background:var(--surface);border-bottom:1px solid var(--border-s);
+      display:flex;align-items:center;padding:0 2rem;gap:1.5rem;
+    }
+    .topbar .t1{font-size:1.15rem;font-weight:600}
+    .topbar .t2{font-size:0.7rem;font-style:italic;color:var(--ink2);margin-top:2px}
+    .topbar-sep{width:1px;height:26px;background:var(--border-s);flex-shrink:0}
+    .back-link{
+      display:flex;align-items:center;gap:6px;font-size:0.79rem;color:var(--ink2);
+      text-decoration:none;border:1px solid var(--border);padding:4px 11px;border-radius:4px;
+      background:var(--bg);transition:all 0.15s;
+    }
+    .back-link:hover{border-color:var(--border-s);color:var(--ink)}
+    .topbar-right{margin-left:auto;font-size:0.78rem;color:var(--ink2);font-style:italic}
+
+    .hero{padding:2rem 2rem 1.5rem;border-bottom:1px solid var(--border);background:var(--surface)}
+    .hero h1{font-size:2rem;font-weight:300;letter-spacing:-0.02em}
+    .hero h1 em{font-style:italic;color:var(--gold)}
+    .hero p{margin-top:0.4rem;font-size:0.85rem;color:var(--ink2);font-style:italic}
+
+    .content{max-width:900px;margin:0 auto;padding:2rem 2rem 4rem}
+
+    /* ── PODIUM ── */
+    .podium{display:flex;align-items:flex-end;justify-content:center;gap:1rem;margin-bottom:2.5rem}
+    .pod-slot{display:flex;flex-direction:column;align-items:center;gap:8px}
+    .pod-avatar{
+      width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:1.3rem;font-weight:600;font-family:'JetBrains Mono',monospace;
+      border:2px solid var(--border-s);background:var(--surface);color:var(--ink2);
+    }
+    .pod-slot.p1 .pod-avatar{width:64px;height:64px;font-size:1.6rem;border-color:var(--gold);color:var(--gold);background:var(--gold-ll)}
+    .pod-slot.p2 .pod-avatar{border-color:#a0a8b0;color:#6080a0;background:#f0f4f8}
+    .pod-slot.p3 .pod-avatar{border-color:#c09060;color:#905030;background:#f8f0e8}
+    .pod-name{font-size:0.85rem;color:var(--ink2);text-align:center;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .pod-count{font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:600;color:var(--ink3)}
+    .pod-bar{width:60px;border-radius:4px 4px 0 0;background:var(--border);min-height:20px}
+    .pod-slot.p1 .pod-bar{background:var(--gold-l);width:72px}
+    .pod-slot.p2 .pod-bar{background:#d0d8e8}
+    .pod-slot.p3 .pod-bar{background:#e8d8c0}
+    .pod-rank{font-size:0.72rem;color:var(--ink3);font-style:italic}
+
+    /* ── TABLE ── */
+    .lb-table{width:100%;border-collapse:collapse}
+    .lb-table thead th{
+      text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.07em;
+      color:var(--ink3);padding:0 0 8px;border-bottom:1px solid var(--border-s);
+      font-family:'JetBrains Mono',monospace;font-weight:400;
+    }
+    .lb-table thead th:last-child,.lb-table thead th:nth-child(3),.lb-table thead th:nth-child(4){text-align:right}
+    .lb-row td{padding:12px 0;border-bottom:1px solid var(--border);vertical-align:middle}
+    .lb-row:last-child td{border-bottom:none}
+    .lb-row.me td{background:var(--gold-ll);padding-left:8px;padding-right:8px;border-radius:4px}
+
+    .rank-num{font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:var(--ink3);width:30px}
+    .user-name{font-size:1rem;color:var(--ink)}
+    .user-name .you{font-size:0.72rem;color:var(--gold);margin-left:6px;font-style:italic}
+
+    .prog-cell{width:200px;padding-right:16px}
+    .mini-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:3px}
+    .mini-fill{height:100%;background:var(--green);border-radius:3px}
+    .mini-label{font-family:'JetBrains Mono',monospace;font-size:0.68rem;color:var(--ink3)}
+
+    .streak-cell{text-align:right;white-space:nowrap}
+    .streak-val{font-family:'JetBrains Mono',monospace;font-size:0.85rem;color:#b06010;font-weight:600}
+    .streak-u{font-size:0.68rem;color:#c08030}
+
+    .done-cell{text-align:right}
+    .done-val{font-family:'JetBrains Mono',monospace;font-size:0.9rem;font-weight:600;color:var(--ink)}
+    .done-pct{font-size:0.68rem;color:var(--ink3);display:block}
+
+    .empty-state{text-align:center;padding:3rem;color:var(--ink3);font-style:italic}
+
+    .refresh-btn{
+      font-family:'Crimson Pro',serif;font-size:0.8rem;color:var(--ink3);
+      background:none;border:1px solid var(--border);border-radius:4px;
+      padding:4px 10px;cursor:pointer;transition:all 0.15s;
+    }
+    .refresh-btn:hover{color:var(--ink);border-color:var(--border-s)}
+
+    .section-title{
+      font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;
+      color:var(--ink3);margin-bottom:1.2rem;display:flex;align-items:center;gap:1rem;
+    }
+    .section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div>
+    <div class="t1">Polycopié LLG</div>
+    <div class="t2">Mathématiques — lycée aux CPGE scientifiques</div>
+  </div>
+  <div class="topbar-sep"></div>
+  <a class="back-link" href="app.html">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    Retour
+  </a>
+  <div class="topbar-right" id="userBadge"></div>
+</header>
+
+<section class="hero">
+  <h1>Classement <em>général</em></h1>
+  <p>Progression de chaque membre du groupe · mise à jour en temps réel</p>
+</section>
+
+<div class="content">
+
+  <div id="podium" class="podium" style="display:none"></div>
+
+  <div class="section-title">
+    Tous les membres
+    <button class="refresh-btn" id="refreshBtn">↻ Actualiser</button>
+  </div>
+
+  <div id="tableContainer">
+    <p class="empty-state">Chargement…</p>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// ⚙️  REMPLACE CES DEUX VALEURS
+// ════════════════════════════════════════════
+const SUPABASE_URL  = 'https://ndzjsyflydztucnommhb.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_-OkHiXwxM7EcRaC_tdonTw_f75Q09GP';
+// ════════════════════════════════════════════
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const TOTAL = 561;
+let myId = null;
+
+function initials(name) {
+  return name.split(' ').map(w=>w[0]||'').join('').toUpperCase().slice(0,2) || '?';
+}
+
+async function loadLeaderboard() {
+  document.getElementById('tableContainer').innerHTML = '<p class="empty-state">Chargement…</p>';
+
+  const { data, error } = await sb.from('leaderboard').select('*');
+  if (error || !data || !data.length) {
+    document.getElementById('tableContainer').innerHTML = '<p class="empty-state">Aucune donnée disponible.</p>';
+    return;
+  }
+
+  // Sort by done_count desc (view already does this but just in case)
+  data.sort((a,b) => b.done_count - a.done_count);
+
+  // ── PODIUM (top 3) ──
+  const podiumEl = document.getElementById('podium');
+  const podiumOrder = [data[1], data[0], data[2]].filter(Boolean);
+  const podClasses = ['p2','p1','p3'];
+  const podRanks = ['2e','1er','3e'];
+  const maxDone = data[0]?.done_count || 1;
+
+  podiumEl.innerHTML = '';
+  podiumOrder.forEach((user, i) => {
+    if (!user) return;
+    const rank = data.indexOf(user) + 1;
+    const barH = Math.max(20, Math.round((user.done_count / Math.max(maxDone,1)) * 100));
+    const slot = document.createElement('div');
+    slot.className = 'pod-slot ' + podClasses[i];
+    const isMe = user.id === myId;
+    slot.innerHTML = `
+      <div class="pod-avatar">${initials(user.username)}</div>
+      <div class="pod-name">${user.username}${isMe?' (toi)':''}</div>
+      <div class="pod-count">${user.done_count} exo${user.done_count>1?'s':''}</div>
+      <div class="pod-bar" style="height:${barH}px"></div>
+      <div class="pod-rank">${podRanks[i]}</div>
+    `;
+    podiumEl.appendChild(slot);
+  });
+  if (data.length >= 2) podiumEl.style.display = 'flex';
+
+  // ── TABLE ──
+  const table = document.createElement('table');
+  table.className = 'lb-table';
+  table.innerHTML = `<thead><tr>
+    <th style="width:36px">#</th>
+    <th>Membre</th>
+    <th>Progression</th>
+    <th>Streak</th>
+    <th>Exercices</th>
+  </tr></thead>`;
+  const tbody = document.createElement('tbody');
+
+  data.forEach((user, i) => {
+    const isMe = user.id === myId;
+    const pct = (user.done_count / TOTAL * 100).toFixed(1);
+    const tr = document.createElement('tr');
+    tr.className = 'lb-row' + (isMe ? ' me' : '');
+
+    // streak: count consecutive days
+    tr.innerHTML = `
+      <td class="rank-num">${i+1}</td>
+      <td class="user-name">${user.username}${isMe?'<span class="you">toi</span>':''}</td>
+      <td class="prog-cell">
+        <div class="mini-bar"><div class="mini-fill" style="width:${pct}%"></div></div>
+        <div class="mini-label">${pct} %</div>
+      </td>
+      <td class="streak-cell">
+        <span class="streak-val">🔥 ${user.total_days}</span>
+        <span class="streak-u">jours</span>
+      </td>
+      <td class="done-cell">
+        <span class="done-val">${user.done_count}</span>
+        <span class="done-pct">/ ${TOTAL}</span>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  table.appendChild(tbody);
+  document.getElementById('tableContainer').innerHTML = '';
+  document.getElementById('tableContainer').appendChild(table);
+}
+
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { location.href = 'index.html'; return; }
+  myId = session.user.id;
+
+  const { data: profile } = await sb.from('profiles').select('username').eq('id', myId).single();
+  document.getElementById('userBadge').textContent = profile?.username || '';
+
+  await loadLeaderboard();
+
+  document.getElementById('refreshBtn').addEventListener('click', loadLeaderboard);
+
+  // Auto-refresh every 30s
+  setInterval(loadLeaderboard, 30000);
+}
+
+init();
+</script>
+</body>
+</html>
