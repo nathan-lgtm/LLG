@@ -402,15 +402,7 @@ function buildTable() {
       const lvl=LEVELS[num]||3;
       const td=document.createElement('td');
       td.className='ex d'+lvl; td.dataset.n=num;
-      if(ex.done) td.classList.toggle('done', cb.checked);
-      if (cb.checked) {
-  let pts = 0, done = 0;
-  for (let n = 1; n <= TOTAL; n++) {
-    const s = getEx(n);
-    if (s.c) { pts += PTS[LEVELS[n] || 3]; done++; }
-  }
-  sb.from('progress_log').insert({ user_id: userId, total_points: pts, total_done: done });
-}
+      if(ex.done) td.classList.add('done');
 
       const inner=document.createElement('div');inner.className='cell-inner';
       const top=document.createElement('div');top.className='cell-top';
@@ -420,12 +412,12 @@ function buildTable() {
       left.appendChild(ns);left.appendChild(pip);
 
       const lbl=document.createElement('label');lbl.className='cb-wrap';
-      const cb=document.createElement('input');cb.type='checkbox';cb.checked=ex.done;
+      const cbInput=document.createElement('input');cbInput.type='checkbox';cbInput.checked=ex.done;
       const vis=document.createElement('div');vis.className='cb-visual';
       vis.innerHTML='<svg class="cb-tick" width="8" height="8" viewBox="0 0 10 10" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5,5 4,7.5 8.5,2"/></svg>';
-      lbl.appendChild(cb);lbl.appendChild(vis);
+      lbl.appendChild(cbInput);lbl.appendChild(vis);
 
-      cb.addEventListener('change',(function(n,cell,checkbox){
+      cbInput.addEventListener('change',(function(n,cell,checkbox){
         return function(){
           if(!exData[n]) exData[n]={done:false,notes:''};
           exData[n].done=checkbox.checked;
@@ -433,10 +425,16 @@ function buildTable() {
           if(!pendingSaves[n]) pendingSaves[n]={done:exData[n].done,notes:exData[n].notes||''};
           pendingSaves[n].done=checkbox.checked;
           scheduleSave(n);
-          if(checkbox.checked) markToday();
+          if(checkbox.checked){
+            markToday();
+            // Enregistrer un point de progression pour le graphique
+            let pts=0,done=0;
+            for(let i=1;i<=TOTAL;i++){const ex2=exData[i];if(ex2&&ex2.done){pts+=PTS[LEVELS[i]||3];done++;}}
+            sb.from('progress_log').insert({user_id:userId,total_points:pts,total_done:done});
+          }
           updateStats(); applyFilter();
         };
-      })(num,td,cb));
+      })(num,td,cbInput));
 
       top.appendChild(left);top.appendChild(lbl);
       const divEl=document.createElement('div');divEl.className='cell-div';
