@@ -170,10 +170,29 @@ function buildHeatmap(activeDays){
 let chartInstance = null;
 function buildChart(logs){
   const wrap=document.createElement('div');wrap.className='chart-card';
-  wrap.innerHTML='<div class="section-title" style="margin-bottom:0.5rem">Progression des points dans le temps <button id="refreshChart" style="font-family:\'Crimson Pro\',serif;font-size:0.75rem;color:var(--ink3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;margin-left:8px;">↻ Actualiser</button></div>';
+
+  const titleRow=document.createElement('div');
+  titleRow.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:0.5rem;';
+  const titleEl=document.createElement('div');titleEl.className='section-title';
+  titleEl.style.marginBottom='0';titleEl.textContent='Progression des points dans le temps';
+  const refreshBtn=document.createElement('button');
+  refreshBtn.textContent='↻ Actualiser';
+  refreshBtn.style.cssText='font-family:\'Crimson Pro\',serif;font-size:0.75rem;color:var(--ink3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;flex-shrink:0;';
+  titleRow.appendChild(titleEl);titleRow.appendChild(refreshBtn);
+  wrap.appendChild(titleRow);
+
   const cw=document.createElement('div');cw.className='chart-wrap';
   const canvas=document.createElement('canvas');canvas.id='progressCanvas';cw.appendChild(canvas);wrap.appendChild(cw);
   setTimeout(()=>renderChart(canvas,logs),50);
+
+  // Listener directement sur l'élément — pas besoin de getElementById
+  refreshBtn.addEventListener('click', async()=>{
+    refreshBtn.textContent='↻ …';refreshBtn.disabled=true;
+    const{data:freshLogs}=await sb.from('progress_log').select('recorded_at,total_points,total_done').eq('user_id',document.getElementById('progressCanvas').dataset.uid).order('recorded_at',{ascending:true});
+    renderChart(canvas,freshLogs||[]);
+    refreshBtn.textContent='↻ Actualiser';refreshBtn.disabled=false;
+  });
+
   return wrap;
 }
 
@@ -338,16 +357,9 @@ async function init(){
   content.appendChild(hmCard);
 
   // ── CHART ──
-  content.appendChild(buildChart(logs||[]));
-
-  // Bouton actualiser le graphique
-  document.getElementById('refreshChart').addEventListener('click', async () => {
-    const btn = document.getElementById('refreshChart');
-    btn.textContent = '↻ …';btn.disabled = true;
-    const {data:freshLogs} = await sb.from('progress_log').select('recorded_at,total_points,total_done').eq('user_id',targetId).order('recorded_at',{ascending:true});
-    renderChart(document.getElementById('progressCanvas'), freshLogs||[]);
-    btn.textContent = '↻ Actualiser';btn.disabled = false;
-  });
+  const chartWrap=buildChart(logs||[]);
+  document.getElementById('progressCanvas').dataset.uid=targetId;
+  content.appendChild(chartWrap);
 }
 init();
 </script>
