@@ -402,7 +402,15 @@ function buildTable() {
       const lvl=LEVELS[num]||3;
       const td=document.createElement('td');
       td.className='ex d'+lvl; td.dataset.n=num;
-      if(ex.done) td.classList.add('done');
+      if(ex.done) td.classList.toggle('done', cb.checked);
+      if (cb.checked) {
+  let pts = 0, done = 0;
+  for (let n = 1; n <= TOTAL; n++) {
+    const s = getEx(n);
+    if (s.c) { pts += PTS[LEVELS[n] || 3]; done++; }
+  }
+  sb.from('progress_log').insert({ user_id: userId, total_points: pts, total_done: done });
+}
 
       const inner=document.createElement('div');inner.className='cell-inner';
       const top=document.createElement('div');top.className='cell-top';
