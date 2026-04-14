@@ -170,16 +170,12 @@ function buildHeatmap(activeDays){
 function buildChart(logs){
   const wrap=document.createElement('div');wrap.className='chart-card';
   wrap.innerHTML='<div class="section-title" style="margin-bottom:0.5rem">Progression des points dans le temps</div>';
-  if(!logs||logs.length<2){
-    const empty=document.createElement('div');empty.className='chart-empty';
-    empty.textContent='Le graphique apparaîtra après plusieurs sessions de travail.';
-    wrap.appendChild(empty);return wrap;
-  }
-  // Sort by time
-  logs.sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at));
-  const first=new Date(logs[0].recorded_at);
-  const labels=logs.map(l=>((new Date(l.recorded_at)-first)/3600000).toFixed(1));
-  const data=logs.map(l=>l.total_points);
+  // Always show the chart, even if empty
+  logs=(logs||[]).slice().sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at));
+  // Always start with a (0h, 0pts) point
+  const first=logs.length?new Date(logs[0].recorded_at):new Date();
+  const labels=['0.0',...logs.map(l=>((new Date(l.recorded_at)-first)/3600000).toFixed(1))];
+  const data=[0,...logs.map(l=>l.total_points)];
   const cw=document.createElement('div');cw.className='chart-wrap';
   const canvas=document.createElement('canvas');cw.appendChild(canvas);wrap.appendChild(cw);
   // Draw after DOM insert (requestAnimationFrame)
