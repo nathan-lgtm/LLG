@@ -167,47 +167,38 @@ function buildHeatmap(activeDays){
 }
 
 // ── CHART ──
+let chartInstance = null;
 function buildChart(logs){
   const wrap=document.createElement('div');wrap.className='chart-card';
-  wrap.innerHTML='<div class="section-title" style="margin-bottom:0.5rem">Progression des points dans le temps</div>';
+  wrap.innerHTML='<div class="section-title" style="margin-bottom:0.5rem">Progression des points dans le temps <button id="refreshChart" style="font-family:\'Crimson Pro\',serif;font-size:0.75rem;color:var(--ink3);background:none;border:1px solid var(--border);border-radius:4px;padding:2px 9px;cursor:pointer;margin-left:8px;">↻ Actualiser</button></div>';
+  const cw=document.createElement('div');cw.className='chart-wrap';
+  const canvas=document.createElement('canvas');canvas.id='progressCanvas';cw.appendChild(canvas);wrap.appendChild(cw);
+  setTimeout(()=>renderChart(canvas,logs),50);
+  return wrap;
+}
+
+function renderChart(canvas, logs){
   logs=(logs||[]).slice().sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at));
   const fmt=d=>{const dt=new Date(d);return dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
   const labels=logs.length?['Début',...logs.map(l=>fmt(l.recorded_at))]:['Début'];
   const data=logs.length?[0,...logs.map(l=>l.total_points)]:[0];
-  const cw=document.createElement('div');cw.className='chart-wrap';
-  const canvas=document.createElement('canvas');cw.appendChild(canvas);wrap.appendChild(cw);
-  // Draw after DOM insert (requestAnimationFrame)
-  setTimeout(()=>{
-    new Chart(canvas,{
-      type:'line',
-      data:{
-        labels,
-        datasets:[{
-          label:'Points',
-          data,
-          borderColor:'#7c5c2a',
-          backgroundColor:'rgba(124,92,42,0.08)',
-          borderWidth:2,
-          pointRadius:3,
-          pointBackgroundColor:'#7c5c2a',
-          tension:0.35,
-          fill:true,
-        }]
-      },
-      options:{
-        responsive:true,maintainAspectRatio:false,
-        plugins:{legend:{display:false},tooltip:{callbacks:{
-          title:items=>items[0].label,
-          label:item=>`${item.raw} pts`
-        }}},
-        scales:{
-          x:{title:{display:true,text:'Date',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10},maxRotation:30},grid:{color:'#ddd9d0'}},
-          y:{title:{display:true,text:'Points cumulés',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10}},grid:{color:'#ddd9d0'},beginAtZero:true}
-        }
+  if(chartInstance) chartInstance.destroy();
+  chartInstance=new Chart(canvas,{
+    type:'line',
+    data:{labels,datasets:[{
+      label:'Points',data,
+      borderColor:'#7c5c2a',backgroundColor:'rgba(124,92,42,0.08)',
+      borderWidth:2,pointRadius:3,pointBackgroundColor:'#7c5c2a',tension:0.35,fill:true,
+    }]},
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{title:items=>items[0].label,label:item=>`${item.raw} pts`}}},
+      scales:{
+        x:{title:{display:true,text:'Date',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10},maxRotation:30},grid:{color:'#ddd9d0'}},
+        y:{title:{display:true,text:'Points cumulés',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10}},grid:{color:'#ddd9d0'},beginAtZero:true}
       }
-    });
-  },50);
-  return wrap;
+    }
+  });
 }
 
 async function init(){
@@ -348,6 +339,15 @@ async function init(){
 
   // ── CHART ──
   content.appendChild(buildChart(logs||[]));
+
+  // Bouton actualiser le graphique
+  document.getElementById('refreshChart').addEventListener('click', async () => {
+    const btn = document.getElementById('refreshChart');
+    btn.textContent = '↻ …';btn.disabled = true;
+    const {data:freshLogs} = await sb.from('progress_log').select('recorded_at,total_points,total_done').eq('user_id',targetId).order('recorded_at',{ascending:true});
+    renderChart(document.getElementById('progressCanvas'), freshLogs||[]);
+    btn.textContent = '↻ Actualiser';btn.disabled = false;
+  });
 }
 init();
 </script>
