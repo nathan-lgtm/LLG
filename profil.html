@@ -170,12 +170,10 @@ function buildHeatmap(activeDays){
 function buildChart(logs){
   const wrap=document.createElement('div');wrap.className='chart-card';
   wrap.innerHTML='<div class="section-title" style="margin-bottom:0.5rem">Progression des points dans le temps</div>';
-  // Always show the chart, even if empty
   logs=(logs||[]).slice().sort((a,b)=>new Date(a.recorded_at)-new Date(b.recorded_at));
-  // Always start with a (0h, 0pts) point
-  const first=logs.length?new Date(logs[0].recorded_at):new Date();
-  const labels=['0.0',...logs.map(l=>((new Date(l.recorded_at)-first)/3600000).toFixed(1))];
-  const data=[0,...logs.map(l=>l.total_points)];
+  const fmt=d=>{const dt=new Date(d);return dt.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+dt.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});};
+  const labels=logs.length?['Début',...logs.map(l=>fmt(l.recorded_at))]:['Début'];
+  const data=logs.length?[0,...logs.map(l=>l.total_points)]:[0];
   const cw=document.createElement('div');cw.className='chart-wrap';
   const canvas=document.createElement('canvas');cw.appendChild(canvas);wrap.appendChild(cw);
   // Draw after DOM insert (requestAnimationFrame)
@@ -199,11 +197,11 @@ function buildChart(logs){
       options:{
         responsive:true,maintainAspectRatio:false,
         plugins:{legend:{display:false},tooltip:{callbacks:{
-          title:items=>`+${items[0].label} h`,
+          title:items=>items[0].label,
           label:item=>`${item.raw} pts`
         }}},
         scales:{
-          x:{title:{display:true,text:'Heures depuis le début',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10}},grid:{color:'#ddd9d0'}},
+          x:{title:{display:true,text:'Date',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10},maxRotation:30},grid:{color:'#ddd9d0'}},
           y:{title:{display:true,text:'Points cumulés',color:'#9a9590',font:{family:'JetBrains Mono',size:11}},ticks:{color:'#9a9590',font:{family:'JetBrains Mono',size:10}},grid:{color:'#ddd9d0'},beginAtZero:true}
         }
       }
